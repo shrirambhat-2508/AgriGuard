@@ -19,7 +19,7 @@ const ITEMS: { id: NavTab; label: string }[] = [
 ]
 
 function NavIcon({ id, active }: { id: NavTab; active: boolean }) {
-  const c = active ? "#ffffff" : "rgba(255,255,255,0.45)"
+  const c = active ? "#ffffff" : "rgba(255,255,255,0.82)"
   if (id === "home")
     return (
       <svg width="20" height="20" viewBox="0 0 22 22" fill="none">

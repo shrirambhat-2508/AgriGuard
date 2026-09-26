@@ -70,6 +70,9 @@ export default function AboutScreen({ navigate }: AboutScreenProps) {
             <p className="text-[14px] text-muted font-medium mt-1">
               Offline Crop Health &amp; Advisory System
             </p>
+            <p className="text-[13px] text-muted leading-relaxed mt-3 max-w-sm">
+              AgriGuard brings crop photos, field readings, and observations together to help you monitor crop health. Saved reports stay on this device.
+            </p>
             <p className="text-[12px] text-muted/60 font-medium mt-0.5">
               Version 1.0
             </p>

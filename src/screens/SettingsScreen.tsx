@@ -1,15 +1,19 @@
-import React, { useState } from "react"
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react"
 import TopBar from "../components/TopBar"
 import Button from "../components/Button"
 import { type Crop } from "../data/crops"
+import { type CropRecord } from "../data/mockData"
 
 interface SettingsScreenProps {
   navigate: (screen: string) => void
   recordCount: number
+  records: CropRecord[]
   clearHistory: () => void
   darkMode?: boolean
   onToggleDark?: () => void
   activeCrop?: Crop
+  settingsScrollTop: number
+  onSettingsScroll: (scrollTop: number) => void
 }
 
 function SettingsRow({
@@ -128,19 +132,21 @@ function Modal({
   title,
   children,
   onClose,
+  isClosing,
 }: {
   title: string
   children: React.ReactNode
   onClose: () => void
+  isClosing: boolean
 }) {
   return (
     <div
-      className="absolute inset-0 z-50 flex flex-col justify-end"
+      className={`settings-modal absolute inset-0 z-50 flex flex-col justify-end${isClosing ? " is-closing" : ""}`}
       style={{ background: "rgba(0,0,0,0.5)" }}
       onClick={onClose}
     >
       <div
-        className="rounded-t-3xl px-5 pt-6 pb-10 space-y-4"
+        className="settings-modal__panel rounded-t-3xl px-5 pt-6 pb-10 space-y-4"
         style={{ background: "var(--color-card)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -162,35 +168,164 @@ function Modal({
 
 type ModalType = "clear-history" | "export-data" | "sensor-connection" | "credits" | "privacy" | "disclaimer" | "ai-model" | null
 
+async function createCropReportPdf(
+  records: CropRecord[],
+  defaultCropName: string,
+) {
+  const { jsPDF } = await import("jspdf")
+  const pdf = new jsPDF()
+  const margin = 18
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const contentWidth = pageWidth - margin * 2
+  let cursorY = 22
+
+  pdf.setFillColor(44, 95, 46)
+  pdf.rect(0, 0, pageWidth, 7, "F")
+
+  function writeText(
+    text: string,
+    fontSize = 10,
+    bold = false,
+    color: [number, number, number] = [28, 28, 30],
+  ) {
+    pdf.setFont("helvetica", bold ? "bold" : "normal")
+    pdf.setFontSize(fontSize)
+    pdf.setTextColor(color[0], color[1], color[2])
+
+    const lines = pdf.splitTextToSize(text, contentWidth)
+    const lineHeight = fontSize * 0.48
+    for (const line of lines) {
+      if (cursorY + lineHeight > pageHeight - margin) {
+        pdf.addPage()
+        cursorY = margin
+      }
+      pdf.text(line, margin, cursorY)
+      cursorY += lineHeight
+    }
+  }
+
+  writeText("AgriGuard Crop Health Report", 20, true, [44, 95, 46])
+  writeText(
+    `Exported ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`,
+    9,
+    false,
+    [107, 114, 128],
+  )
+  writeText(`${records.length} saved crop records`, 10, true)
+  cursorY += 5
+
+  if (records.length === 0) {
+    writeText("No crop records have been saved yet.", 10)
+  }
+
+  records.forEach((record, index) => {
+    cursorY += 3
+    writeText(
+      `${index + 1}. ${record.cropName ?? defaultCropName} - ${record.displayDate} at ${record.displayTime}`,
+      13,
+      true,
+      [44, 95, 46],
+    )
+    writeText(`Finding: ${record.condition} (${record.result})`, 10, true)
+    writeText(`Confidence: ${record.confidence}%`, 9)
+    writeText(
+      `Field readings: Soil moisture ${record.moisture}% | Temperature ${record.temp} C | Humidity ${record.humidity}%`,
+      9,
+    )
+    writeText("What it means", 9, true)
+    writeText(record.whatItMeans, 9)
+    writeText("Recommendation", 9, true)
+    writeText(record.recommendation, 9)
+    cursorY += 4
+  })
+
+  const pageCount = pdf.getNumberOfPages()
+  for (let page = 1; page <= pageCount; page += 1) {
+    pdf.setPage(page)
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(8)
+    pdf.setTextColor(107, 114, 128)
+    pdf.text(`${page} / ${pageCount}`, pageWidth - margin, pageHeight - 8, {
+      align: "right",
+    })
+  }
+
+  return pdf.output("blob")
+}
+
 export default function SettingsScreen({
   navigate,
   recordCount,
+  records,
   clearHistory,
   darkMode,
   onToggleDark,
   activeCrop,
+  settingsScrollTop,
+  onSettingsScroll,
 }: SettingsScreenProps) {
   const [offlineMode, setOfflineMode] = useState(true)
   const [notifications, setNotifications] = useState(false)
   const [modal, setModal] = useState<ModalType>(null)
+  const [isModalClosing, setIsModalClosing] = useState(false)
   const [exported, setExported] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const modalCloseTimer = useRef<number | undefined>(undefined)
+
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = settingsScrollTop
+  }, [settingsScrollTop])
+
+  useEffect(
+    () => () => {
+      if (modalCloseTimer.current !== undefined) {
+        window.clearTimeout(modalCloseTimer.current)
+      }
+    },
+    [],
+  )
+
+  function closeModal() {
+    if (isModalClosing || modalCloseTimer.current !== undefined) return
+    setIsModalClosing(true)
+    modalCloseTimer.current = window.setTimeout(() => {
+      setModal(null)
+      setIsModalClosing(false)
+      modalCloseTimer.current = undefined
+    }, 200)
+  }
 
   function handleClearConfirm() {
     clearHistory()
-    setModal(null)
+    closeModal()
   }
 
-  function handleExportConfirm() {
+  async function handleExportConfirm() {
+    const file = await createCropReportPdf(records, activeCrop?.name ?? "Crop")
+    const objectUrl = URL.createObjectURL(file)
+    const link = document.createElement("a")
+    link.href = objectUrl
+    link.download = `agriguard-crop-report-${new Date().toISOString().slice(0, 10)}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+
     setExported(true)
     setTimeout(() => setExported(false), 3000)
-    setModal(null)
+    closeModal()
   }
 
   return (
     <div className="flex-1 min-h-0 flex flex-col relative">
       <TopBar title="Settings" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-28 space-y-4">
+      <div
+        ref={scrollRef}
+        onScroll={(event) => onSettingsScroll(event.currentTarget.scrollTop)}
+        className="settings-scroll flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-28 space-y-4"
+      >
         {/* Export success toast */}
         {exported && (
           <div
@@ -210,7 +345,7 @@ export default function SettingsScreen({
               />
             </svg>
             <p className="text-[13px] font-semibold text-[#15803D]">
-              Data exported successfully
+              PDF download started
             </p>
           </div>
         )}
@@ -320,12 +455,6 @@ export default function SettingsScreen({
             label="Disclaimer"
             onPress={() => setModal("disclaimer")}
           />
-          <p
-            className="px-4 py-3 text-[13px] leading-relaxed"
-            style={{ color: "var(--color-muted)" }}
-          >
-            AgriGuard brings crop photos, field readings, and observations together to help you monitor crop health. Saved reports stay on this device.
-          </p>
         </Section>
 
         <p
@@ -339,7 +468,7 @@ export default function SettingsScreen({
       {/* ── Modals ── */}
 
       {modal === "clear-history" && (
-        <Modal title="Clear crop history?" onClose={() => setModal(null)}>
+        <Modal title="Clear crop history?" onClose={closeModal} isClosing={isModalClosing}>
           <p
             className="text-[15px] leading-relaxed"
             style={{ color: "var(--color-muted)" }}
@@ -351,7 +480,7 @@ export default function SettingsScreen({
             <Button variant="destructive" onClick={handleClearConfirm}>
               Clear All Records
             </Button>
-            <Button variant="outline" onClick={() => setModal(null)}>
+            <Button variant="outline" onClick={closeModal}>
               Cancel
             </Button>
           </div>
@@ -359,19 +488,19 @@ export default function SettingsScreen({
       )}
 
       {modal === "export-data" && (
-        <Modal title="Export crop data" onClose={() => setModal(null)}>
+        <Modal title="Export crop data" onClose={closeModal} isClosing={isModalClosing}>
           <p
             className="text-[15px] leading-relaxed"
             style={{ color: "var(--color-muted)" }}
           >
-            Your {recordCount} crop records will be exported as a JSON file and
+            Your {recordCount} crop records will be exported as a PDF report and
             saved to your device.
           </p>
           <div className="space-y-2 pt-2">
             <Button variant="primary" onClick={handleExportConfirm}>
               Export to Device
             </Button>
-            <Button variant="outline" onClick={() => setModal(null)}>
+            <Button variant="outline" onClick={closeModal}>
               Cancel
             </Button>
           </div>
@@ -379,7 +508,7 @@ export default function SettingsScreen({
       )}
 
       {modal === "sensor-connection" && (
-        <Modal title="Field Sensor Connection" onClose={() => setModal(null)}>
+        <Modal title="Field Sensor Connection" onClose={closeModal} isClosing={isModalClosing}>
           <div className="space-y-3">
             <div
               className="rounded-xl px-4 py-3 flex items-center gap-2"
@@ -411,14 +540,14 @@ export default function SettingsScreen({
               ))}
             </div>
           </div>
-          <Button variant="outline" onClick={() => setModal(null)}>
+          <Button variant="outline" onClick={closeModal}>
             Close
           </Button>
         </Modal>
       )}
 
       {modal === "ai-model" && (
-        <Modal title="AI Model" onClose={() => setModal(null)}>
+        <Modal title="AI Model" onClose={closeModal} isClosing={isModalClosing}>
           <div className="space-y-2 text-[14px]">
             {[
               ["Name", "Plant Health Classifier v1.0"],
@@ -444,14 +573,14 @@ export default function SettingsScreen({
             The AI model runs entirely on your device. No images or data are
             sent to any server.
           </p>
-          <Button variant="outline" onClick={() => setModal(null)}>
+          <Button variant="outline" onClick={closeModal}>
             Close
           </Button>
         </Modal>
       )}
 
       {modal === "credits" && (
-        <Modal title="Open-source credits" onClose={() => setModal(null)}>
+        <Modal title="Open-source credits" onClose={closeModal} isClosing={isModalClosing}>
           <div className="space-y-3 text-[14px]">
             {[
               ["React", "MIT"],
@@ -471,14 +600,14 @@ export default function SettingsScreen({
               </div>
             ))}
           </div>
-          <Button variant="outline" onClick={() => setModal(null)}>
+          <Button variant="outline" onClick={closeModal}>
             Close
           </Button>
         </Modal>
       )}
 
       {modal === "privacy" && (
-        <Modal title="Privacy" onClose={() => setModal(null)}>
+        <Modal title="Privacy" onClose={closeModal} isClosing={isModalClosing}>
           <p
             className="text-[15px] leading-relaxed"
             style={{ color: "var(--color-charcoal)" }}
@@ -494,14 +623,14 @@ export default function SettingsScreen({
             The application works entirely offline and does not require an
             internet connection.
           </p>
-          <Button variant="outline" onClick={() => setModal(null)}>
+          <Button variant="outline" onClick={closeModal}>
             Close
           </Button>
         </Modal>
       )}
 
       {modal === "disclaimer" && (
-        <Modal title="Disclaimer" onClose={() => setModal(null)}>
+        <Modal title="Disclaimer" onClose={closeModal} isClosing={isModalClosing}>
           <p
             className="text-[15px] leading-relaxed"
             style={{ color: "var(--color-charcoal)" }}
@@ -517,7 +646,7 @@ export default function SettingsScreen({
             guidance. AgriGuard is an advisory tool, not a replacement
             for professional advice.
           </p>
-          <Button variant="outline" onClick={() => setModal(null)}>
+          <Button variant="outline" onClick={closeModal}>
             Close
           </Button>
         </Modal>

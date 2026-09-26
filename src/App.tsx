@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import BottomNav from "./components/BottomNav"
 import Sidebar from "./components/Sidebar"
 import SplashScreen from "./screens/SplashScreen"
@@ -120,6 +120,7 @@ export default function App() {
   const [userCrops, setUserCrops] = useState<Crop[]>([])
   const [myCropIds, setMyCropIds] = useState<string[]>(["tomato"])
   const [cropReturnTo, setCropReturnTo] = useState<string>("home")
+  const settingsScrollTop = useRef(0)
   const [selectedMetric, setSelectedMetric] =
     useState<"moisture" | "temp" | "humidity">("moisture")
 
@@ -129,6 +130,10 @@ export default function App() {
     DEFAULT_CROPS[0]
 
   const clearHistory = useCallback(() => setRecords([]), [])
+
+  const rememberSettingsScroll = useCallback((scrollTop: number) => {
+    settingsScrollTop.current = scrollTop
+  }, [])
 
   const toggleDarkMode = useCallback(() => setDarkMode((d) => !d), [])
 
@@ -400,10 +405,13 @@ export default function App() {
           <SettingsScreen
             navigate={navigate}
             recordCount={records.length}
+            records={records}
             clearHistory={clearHistory}
             darkMode={darkMode}
             onToggleDark={toggleDarkMode}
             activeCrop={activeCrop}
+            settingsScrollTop={settingsScrollTop.current}
+            onSettingsScroll={rememberSettingsScroll}
           />
         )
       case "about":

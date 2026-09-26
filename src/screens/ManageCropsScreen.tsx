@@ -13,8 +13,11 @@ import {
 interface ManageCropsScreenProps {
   navigate: (screen: string) => void
   activeCropId: string
+  myCropIds: string[]
   userCrops: Crop[]
   onSelectCrop: (id: string) => void
+  onAddCropToList: (id: string) => void
+  onRemoveCropFromList: (id: string) => void
   onAddCustomCrop: (crop: Crop) => void
   returnTo?: string
 }
@@ -22,13 +25,17 @@ interface ManageCropsScreenProps {
 export default function ManageCropsScreen({
   navigate,
   activeCropId,
+  myCropIds,
   userCrops,
   onSelectCrop,
+  onAddCropToList,
+  onRemoveCropFromList,
   onAddCustomCrop,
   returnTo = "home",
 }: ManageCropsScreenProps) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<CategoryId>("all")
+  const [showCropCatalog, setShowCropCatalog] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [customName, setCustomName] = useState("")
   const [customEmoji, setCustomEmoji] = useState("🌱")
@@ -46,9 +53,20 @@ export default function ManageCropsScreen({
     return list
   }, [allCrops, category, query])
 
+  const activeCrops = myCropIds
+    .map((id) => allCrops.find((crop) => crop.id === id))
+    .filter((crop): crop is Crop => Boolean(crop))
+
   function handleSelect(crop: Crop) {
     onSelectCrop(crop.id)
     navigate("home")
+  }
+
+  function handleAddCrop(crop: Crop) {
+    onAddCropToList(crop.id)
+    setShowCropCatalog(false)
+    setQuery("")
+    setCategory("all")
   }
 
   function handleAddCustom() {
@@ -62,17 +80,116 @@ export default function ManageCropsScreen({
       category: "vegetables",
       custom: true,
     })
-    onSelectCrop(id)
+    onAddCropToList(id)
     setCustomName("")
     setCustomEmoji("🌱")
     setShowAddModal(false)
-    navigate("home")
   }
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <TopBar title="Manage Crops" onBack={() => navigate(returnTo)} />
+      <TopBar
+        title={showCropCatalog ? "Add a Crop" : "Manage Crops"}
+        onBack={() =>
+          showCropCatalog
+            ? setShowCropCatalog(false)
+            : navigate(returnTo)
+        }
+      />
 
+      {!showCropCatalog ? (
+        <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-32">
+          <div className="flex items-end justify-between gap-3 pt-2 pb-4">
+            <div>
+              <h2
+                className="font-display text-[20px] font-bold"
+                style={{ color: "var(--color-charcoal)" }}
+              >
+                Your Crops
+              </h2>
+              <p className="mt-1 text-[13px]" style={{ color: "var(--color-muted)" }}>
+                {activeCrops.length} active {activeCrops.length === 1 ? "crop" : "crops"}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {activeCrops.map((crop) => {
+              const isActive = crop.id === activeCropId
+              const canRemove = activeCrops.length > 1
+              return (
+                <div
+                  key={crop.id}
+                  className="flex items-center gap-3 rounded-2xl p-3"
+                  style={{
+                    background: isActive ? "var(--color-brand-pale)" : "var(--color-card)",
+                    border: isActive
+                      ? "1.5px solid #2C5F2E"
+                      : "1.5px solid var(--color-border)",
+                  }}
+                >
+                  <button
+                    onClick={() => handleSelect(crop)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    aria-label={`Select ${crop.name}${isActive ? ", currently active" : ""}`}
+                  >
+                    <span
+                      className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl text-2xl"
+                      style={{ background: CATEGORY_EMOJI_BG[crop.category] ?? "#F3F4F6" }}
+                    >
+                      {crop.emoji}
+                    </span>
+                    <span className="min-w-0">
+                      <span
+                        className="block truncate text-[15px] font-semibold"
+                        style={{ color: "var(--color-charcoal)" }}
+                      >
+                        {crop.name}
+                      </span>
+                      <span className="mt-0.5 block text-[12px]" style={{ color: "var(--color-muted)" }}>
+                        {isActive ? "Currently selected" : "Tap to select"}
+                      </span>
+                    </span>
+                  </button>
+                  {isActive && (
+                    <span
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white"
+                      aria-label="Currently selected"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                        <path d="M2.5 6.5L5.2 9L10.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  )}
+                  {canRemove && (
+                    <button
+                      onClick={() => onRemoveCropFromList(crop.id)}
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+                      style={{ color: "var(--color-muted)" }}
+                      aria-label={`Remove ${crop.name}`}
+                    >
+                      <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+                        <path d="M3.5 5H13.5M6.5 5V3.5H10.5V5M5 5.5L5.6 13.5H11.4L12 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="md"
+            className="mt-4"
+            onClick={() => setShowCropCatalog(true)}
+          >
+            <span className="mr-2 text-lg leading-none" aria-hidden="true">+</span>
+            Add a crop
+          </Button>
+        </div>
+      ) : (
+        <>
       {/* Search */}
       <div className="px-5 pb-3 flex-shrink-0">
         <div
@@ -154,7 +271,7 @@ export default function ManageCropsScreen({
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Crop catalog */}
       <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-32">
         {/* Add Custom tile */}
         <button
@@ -172,7 +289,7 @@ export default function ManageCropsScreen({
               className="text-[15px] font-semibold"
               style={{ color: "var(--color-charcoal)" }}
             >
-              Add Custom Crop
+              Add a custom crop
             </p>
             <p
               className="text-[12px] mt-0.5"
@@ -215,27 +332,29 @@ export default function ManageCropsScreen({
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {filtered.map((crop, i) => {
-              const isActive = crop.id === activeCropId
+              const isAdded = myCropIds.includes(crop.id)
               const emojiBg = CATEGORY_EMOJI_BG[crop.category] ?? "#F3F4F6"
               return (
                 <button
                   key={crop.id}
-                  onClick={() => handleSelect(crop)}
+                  onClick={() => handleAddCrop(crop)}
+                  disabled={isAdded}
                   className="relative rounded-2xl p-3.5 flex flex-col items-center gap-2 active:scale-[0.95] transition-all"
                   style={{
                     animationDelay: `${i * 25}ms`,
-                    background: isActive
+                    background: isAdded
                       ? "var(--color-brand-pale)"
                       : "var(--color-card)",
-                    border: isActive
+                    border: isAdded
                       ? "2px solid #2C5F2E"
                       : "1.5px solid var(--color-border)",
-                    boxShadow: isActive
+                    boxShadow: isAdded
                       ? "0 2px 8px rgba(44,95,46,0.18)"
                       : "0 1px 3px rgba(44,95,46,0.06)",
+                    cursor: isAdded ? "default" : "pointer",
                   }}
                 >
-                  {isActive && (
+                  {isAdded && (
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand flex items-center justify-center">
                       <svg
                         width="10"
@@ -255,14 +374,14 @@ export default function ManageCropsScreen({
                   )}
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
-                    style={{ background: isActive ? "#C8DFC9" : emojiBg }}
+                    style={{ background: isAdded ? "#C8DFC9" : emojiBg }}
                   >
                     {crop.emoji}
                   </div>
                   <p
                     className="text-[11px] font-semibold text-center leading-tight"
                     style={{
-                      color: isActive ? "#1E5C22" : "var(--color-charcoal)",
+                      color: isAdded ? "#1E5C22" : "var(--color-charcoal)",
                     }}
                   >
                     {crop.name}
@@ -273,6 +392,8 @@ export default function ManageCropsScreen({
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Add custom crop bottom sheet */}
       {showAddModal && (

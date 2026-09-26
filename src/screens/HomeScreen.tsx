@@ -5,7 +5,7 @@ import { type CropRecord, MOCK_SENSOR, getGreeting } from "../data/mockData"
 import { type Crop } from "../data/crops"
 
 interface HomeScreenProps {
-  navigate: (screen: string) => void
+  navigate: (screen: string, id?: string) => void
   records: CropRecord[]
   activeCrop?: Crop
   darkMode?: boolean
@@ -244,9 +244,21 @@ export default function HomeScreen({
         <div className="tile-enter" style={{ animationDelay: "100ms" }}>
           <SectionHeader title="Field Conditions" />
           <div className="flex gap-3">
-            <MetricCard type="moisture" value={MOCK_SENSOR.moisture} />
-            <MetricCard type="temp" value={MOCK_SENSOR.temp} />
-            <MetricCard type="humidity" value={MOCK_SENSOR.humidity} />
+            <MetricCard
+              type="moisture"
+              value={MOCK_SENSOR.moisture}
+              onClick={() => navigate("metric-detail", "moisture")}
+            />
+            <MetricCard
+              type="temp"
+              value={MOCK_SENSOR.temp}
+              onClick={() => navigate("metric-detail", "temp")}
+            />
+            <MetricCard
+              type="humidity"
+              value={MOCK_SENSOR.humidity}
+              onClick={() => navigate("metric-detail", "humidity")}
+            />
           </div>
         </div>
 

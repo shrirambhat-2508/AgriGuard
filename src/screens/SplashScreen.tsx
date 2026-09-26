@@ -1,34 +1,4 @@
-import { useState, useEffect } from "react"
-
 export default function SplashScreen() {
-  const [progress, setProgress] = useState(0)
-  const [phase, setPhase] = useState<"logo" | "loading">("logo")
-
-  /* After logo animation settles (~1.8s), switch to loading bar phase */
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase("loading"), 1800)
-    return () => clearTimeout(t1)
-  }, [])
-
-  /* Animate progress bar from 0→100 over ~1.2s once in loading phase */
-  useEffect(() => {
-    if (phase !== "loading") return
-    let raf: number
-    const start = performance.now()
-    const duration = 1150
-
-    function tick(now: number) {
-      const elapsed = now - start
-      const p = Math.min(elapsed / duration, 1)
-      /* Ease-out curve so it decelerates near 100% */
-      const eased = 1 - Math.pow(1 - p, 3)
-      setProgress(Math.round(eased * 100))
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [phase])
-
   return (
     <div
       className="flex-1 min-h-0 flex flex-col relative overflow-hidden"
@@ -185,7 +155,7 @@ export default function SplashScreen() {
       </div>
 
       {/* ══════════════════════════════════
-          BOTTOM — Loading bar + tagline
+          BOTTOM — Loading spinner + tagline
       ══════════════════════════════════ */}
       <div
         className="flex-shrink-0 flex flex-col items-center pb-14 px-10 gap-4"
@@ -198,44 +168,26 @@ export default function SplashScreen() {
           Offline Crop Health Assistant
         </p>
 
-        {/* Loading bar */}
-        <div className="w-full">
+        <div
+          className="flex items-center gap-3"
+          role="status"
+          aria-label="Loading AgriGuard"
+        >
           <div
-            className="w-full rounded-full overflow-hidden"
+            className="w-8 h-8 flex-shrink-0 rounded-full border-[3px] animate-spin-ring"
+            aria-hidden="true"
             style={{
-              height: 3,
-              background: "rgba(255,255,255,0.08)",
+              borderColor: "rgba(255,255,255,0.16)",
+              borderTopColor: "#98CF9C",
+              filter: "drop-shadow(0 0 5px rgba(152,207,156,0.45))",
             }}
+          />
+          <span
+            className="text-[11px] font-medium"
+            style={{ color: "rgba(255,255,255,0.42)" }}
           >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background:
-                  "linear-gradient(90deg, rgba(44,95,46,0.6) 0%, rgba(122,158,126,0.9) 100%)",
-                transition: "width 0.04s linear",
-                boxShadow: "0 0 8px rgba(122,158,126,0.5)",
-              }}
-            />
-          </div>
-          <div className="flex justify-between mt-2">
-            <span
-              className="text-[11px] font-medium"
-              style={{ color: "rgba(255,255,255,0.28)" }}
-            >
-              {phase === "loading"
-                ? progress < 100
-                  ? "Loading…"
-                  : "Ready"
-                : "Starting up"}
-            </span>
-            <span
-              className="text-[11px] font-medium"
-              style={{ color: "rgba(255,255,255,0.28)" }}
-            >
-              {progress}%
-            </span>
-          </div>
+            Loading…
+          </span>
         </div>
 
         <p

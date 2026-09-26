@@ -1,9 +1,11 @@
 type MetricType = "moisture" | "temp" | "humidity"
+import TiltedCard from "./TiltedCard"
 
 interface MetricCardProps {
   type: MetricType
   value: number
   compact?: boolean
+  onClick?: () => void
 }
 
 const CONFIG = {
@@ -37,6 +39,7 @@ export default function MetricCard({
   type,
   value,
   compact = false,
+  onClick,
 }: MetricCardProps) {
   const c = CONFIG[type]
 
@@ -55,15 +58,8 @@ export default function MetricCard({
     )
   }
 
-  return (
-    <div
-      className="flex-1 rounded-2xl flex flex-col overflow-hidden transition-all duration-150 active:scale-[0.96] cursor-pointer"
-      style={{
-        background: "var(--color-card)",
-        border: "1px solid var(--color-border)",
-        boxShadow: "0 1px 4px rgba(44,95,46,0.08)",
-      }}
-    >
+  const content = (
+    <>
       {/* Accent bar */}
       <div
         className="h-1 w-full flex-shrink-0"
@@ -92,6 +88,39 @@ export default function MetricCard({
           </p>
         </div>
       </div>
-    </div>
+    </>
+  )
+
+  const tileClassName = "flex-1 rounded-2xl flex flex-col overflow-hidden transition-all duration-150 active:scale-[0.96]"
+  const tileStyle = {
+    background: "var(--color-card)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "0 1px 4px rgba(44,95,46,0.08)",
+  }
+
+  return (
+    <TiltedCard
+      className="flex-1 min-w-0"
+      containerHeight="auto"
+      scaleOnHover={1.03}
+      rotateAmplitude={5}
+      showMobileWarning={false}
+      showTooltip={false}
+    >
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className={`${tileClassName} w-full text-left cursor-pointer`}
+          style={tileStyle}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className={tileClassName} style={tileStyle}>
+          {content}
+        </div>
+      )}
+    </TiltedCard>
   )
 }

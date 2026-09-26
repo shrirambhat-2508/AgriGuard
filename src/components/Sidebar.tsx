@@ -1,4 +1,5 @@
 import React from "react"
+import GlassIcons from "./GlassIcons"
 
 type NavTab = "home" | "check" | "insights" | "history" | "settings"
 
@@ -161,26 +162,15 @@ export default function Sidebar({
 
       {/* ── Nav items ── */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scroll-hidden">
-        {ITEMS.map(({ id, label }) => {
-          const isActive = active === id
-          return (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
-              style={{
-                background: isActive ? "rgba(255,255,255,0.14)" : "transparent",
-                color: isActive ? "#ffffff" : "rgba(255,255,255,0.5)",
-              }}
-            >
-              <NavIcon id={id} active={isActive} />
-              <span className="text-[14px] font-semibold">{label}</span>
-              {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-70 flex-shrink-0" />
-              )}
-            </button>
-          )
-        })}
+        <GlassIcons
+          items={ITEMS.map(({ id, label }) => ({
+            icon: <NavIcon id={id} active={active === id} />,
+            color: "green",
+            label,
+            customClass: active === id ? "is-active" : "",
+            onClick: () => onNavigate(id),
+          }))}
+        />
       </nav>
 
       {/* ── Active crop ── */}

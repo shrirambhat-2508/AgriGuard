@@ -1,0 +1,114 @@
+.icon-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.icon-btn {
+  background-color: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  height: 46px;
+  outline: none;
+  perspective: 24em;
+  position: relative;
+  text-align: left;
+  transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+}
+
+.icon-btn__back,
+.icon-btn__front,
+.icon-btn__label {
+  transition:
+    opacity 0.3s cubic-bezier(0.83, 0, 0.17, 1),
+    transform 0.3s cubic-bezier(0.83, 0, 0.17, 1);
+}
+
+.icon-btn__back,
+.icon-btn__front {
+  border-radius: 10px;
+  height: 34px;
+  left: 7px;
+  position: absolute;
+  top: 6px;
+  width: 34px;
+}
+
+.icon-btn__back {
+  box-shadow: 0.35em -0.35em 0.6em hsla(223, 10%, 10%, 0.18);
+  display: block;
+  transform: rotate(12deg);
+  transform-origin: 100% 100%;
+  will-change: transform;
+}
+
+.icon-btn__front {
+  align-items: center;
+  backdrop-filter: blur(0.75em);
+  -webkit-backdrop-filter: blur(0.75em);
+  background-color: hsla(0, 0%, 100%, 0.15);
+  box-shadow: 0 0 0 0.1em hsla(0, 0%, 100%, 0.3) inset;
+  display: flex;
+  justify-content: center;
+  transform-origin: 80% 50%;
+  will-change: transform;
+}
+
+.icon-btn__icon {
+  align-items: center;
+  color: #fff;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.icon-btn__label {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+  font-weight: 600;
+  left: 52px;
+  line-height: 1.2;
+  opacity: 1;
+  overflow: hidden;
+  position: absolute;
+  right: 12px;
+  text-overflow: ellipsis;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.icon-btn.is-active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.icon-btn.is-active .icon-btn__label {
+  color: #fff;
+}
+
+.icon-btn:focus-visible,
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn:focus-visible .icon-btn__back,
+.icon-btn:hover .icon-btn__back {
+  transform: rotate(22deg) translate3d(-0.2em, -0.2em, 0.25em);
+}
+
+.icon-btn:focus-visible .icon-btn__front,
+.icon-btn:hover .icon-btn__front {
+  transform: translate3d(0, 0, 0.5em);
+}
+
+.icon-btn:focus-visible .icon-btn__label,
+.icon-btn:hover .icon-btn__label {
+  opacity: 1;
+}

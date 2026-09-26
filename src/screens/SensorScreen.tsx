@@ -112,21 +112,28 @@ export default function SensorScreen({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-2xl border border-[#C4D9C5] bg-brand-pale p-4">
-            <span className="text-xl" aria-hidden="true">📷</span>
-            <p className="text-[13px] font-medium leading-relaxed text-[#2C5F2E]">
-              Next, allow camera access and photograph a clear leaf or crop.
-            </p>
-          </div>
-
-          <Button
-            variant="primary"
+          <button
+            type="button"
             onClick={() =>
               onContinue ? onContinue() : navigate("crop-photo")
             }
+            className="group flex min-h-[68px] w-full items-center gap-3 rounded-2xl border border-[#C4D9C5] bg-white px-3.5 py-3 text-left shadow-sm transition hover:border-brand hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
-            Continue to photo
-          </Button>
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-pale text-xl" aria-hidden="true">
+              📷
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-charcoal">
+                Continue to photo
+              </span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Open camera to capture your crop
+              </span>
+            </span>
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand text-lg text-white transition-transform group-hover:translate-x-0.5" aria-hidden="true">
+              →
+            </span>
+          </button>
         </div>
       </div>
     )

@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import Button from "../components/Button"
 import TopBar from "../components/TopBar"
 
@@ -55,11 +55,60 @@ export default function CropPhotoScreen({
   navigate,
   onSavePhoto,
 }: CropPhotoScreenProps) {
-  const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [photoData, setPhotoData] = useState<string | null>(null)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [loading, setLoading] = useState(false)
   const [photoError, setPhotoError] = useState("")
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.srcObject = cameraStream
+    return () => cameraStream?.getTracks().forEach((track) => track.stop())
+  }, [cameraStream])
+
+  const handleOpenCamera = async () => {
+    setPhotoError("")
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPhotoError("Camera access is unavailable in this browser. Choose a photo from files instead.")
+      return
+    }
+
+    try {
+      setCameraStream(await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" } },
+      }))
+    } catch (error) {
+      const denied = error instanceof DOMException &&
+        (error.name === "NotAllowedError" || error.name === "SecurityError")
+      setPhotoError(denied
+        ? "Camera permission was denied. Allow camera access in your browser settings, or choose a photo from files."
+        : "The camera could not be opened. Check that it is connected and available, or choose a photo from files.")
+    }
+  }
+
+  const handleCapture = () => {
+    const video = videoRef.current
+    if (!video?.videoWidth || !video.videoHeight) {
+      setPhotoError("The camera is not ready yet. Please wait a moment and try again.")
+      return
+    }
+
+    const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight))
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.round(video.videoWidth * scale)
+    canvas.height = Math.round(video.videoHeight * scale)
+    const context = canvas.getContext("2d")
+    if (!context) {
+      setPhotoError("This photo could not be captured. Please try again.")
+      return
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    setPhotoData(canvas.toDataURL("image/jpeg", 0.84))
+    setCameraStream(null)
+  }
 
   const handleImageSelection = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -93,15 +142,6 @@ export default function CropPhotoScreen({
 
       <div className="camera-flow-scroll scroll-hidden flex flex-col px-5 gap-5">
         <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleImageSelection}
-          className="sr-only"
-          aria-label="Take a crop photo with the device camera"
-        />
-        <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
@@ -111,7 +151,16 @@ export default function CropPhotoScreen({
         />
 
         <div className="relative flex min-h-[240px] flex-1 items-center justify-center overflow-hidden rounded-3xl border border-border bg-card p-4">
-          {photoData ? (
+          {cameraStream ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-label="Live camera preview"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : photoData ? (
             <img
               src={photoData}
               alt="Selected crop photo"
@@ -138,7 +187,20 @@ export default function CropPhotoScreen({
           </p>
         )}
 
-        {photoData ? (
+        {cameraStream ? (
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setCameraStream(null)}
+              fullWidth
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleCapture} fullWidth>
+              Capture photo
+            </Button>
+          </div>
+        ) : photoData ? (
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -156,22 +218,47 @@ export default function CropPhotoScreen({
             </Button>
           </div>
         ) : (
-          <>
-            <Button
-              variant="primary"
-              onClick={() => cameraInputRef.current?.click()}
+          <div className="flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={handleOpenCamera}
               disabled={loading}
+              className="group flex min-h-[66px] w-full items-center gap-3 rounded-2xl bg-brand px-4 py-2.5 text-left text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-hover hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              Take with camera
-            </Button>
-            <Button
-              variant="secondary"
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/15">
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                  <path d="M4 7.5h3l1.5-2h7l1.5 2h3A1.5 1.5 0 0 1 21.5 9v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+                  <circle cx="12" cy="13" r="3.25" stroke="currentColor" strokeWidth="1.7" />
+                </svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Take with camera</span>
+                <span className="mt-0.5 block text-xs text-white/75">Open camera to capture your crop</span>
+              </span>
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 flex-shrink-0 text-white/80 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
+              className="group flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2 text-left text-charcoal shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand hover:bg-brand-pale/40 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              Choose from files
-            </Button>
-          </>
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-pale text-brand">
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                  <path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Choose from files</span>
+                <span className="mt-0.5 block text-xs text-muted">Select an image already on your device</span>
+              </span>
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 flex-shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
     </div>

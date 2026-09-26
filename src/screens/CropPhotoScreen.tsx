@@ -5,7 +5,10 @@ import TopBar from "../components/TopBar"
 interface CropPhotoScreenProps {
   navigate: (screen: string) => void
   stream: MediaStream | null
-  onRequestCamera: () => void
+  cameraFacing: "user" | "environment"
+  cameraRequesting: boolean
+  cameraError: string
+  onRequestCamera: (facing?: "user" | "environment") => void
   onSavePhoto: (photoData: string) => void
 }
 
@@ -37,6 +40,9 @@ interface CameraTrack extends MediaStreamTrack {
 export default function CropPhotoScreen({
   navigate,
   stream,
+  cameraFacing,
+  cameraRequesting,
+  cameraError,
   onRequestCamera,
   onSavePhoto,
 }: CropPhotoScreenProps) {
@@ -52,7 +58,12 @@ export default function CropPhotoScreen({
 
   useEffect(() => {
     const video = videoRef.current
-    if (!stream || !video) return
+    setCameraReady(false)
+    setCaptureError(false)
+    if (!stream || !video) {
+      if (video) video.srcObject = null
+      return
+    }
 
     const track = stream.getVideoTracks()[0] as CameraTrack | undefined
     const capabilities = track?.getCapabilities?.()
@@ -155,7 +166,7 @@ export default function CropPhotoScreen({
         onBack={() => photoData ? setPhotoData(null) : navigate("sensor-connected")}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden flex flex-col px-5 pb-8 gap-5">
+      <div className="camera-flow-scroll scroll-hidden flex flex-col px-5 gap-5">
         <div
           className="relative flex-1 min-h-[280px] overflow-hidden rounded-3xl bg-[#101712] shadow-lg"
           style={{ flexBasis: 320 }}
@@ -168,7 +179,12 @@ export default function CropPhotoScreen({
               playsInline
               onCanPlay={() => setCameraReady(true)}
               className={`absolute inset-0 h-full w-full object-cover transition-opacity ${photoData ? "opacity-0" : "opacity-100"}`}
-              style={{ transform: nativeZoom ? undefined : `scale(${cameraZoom})` }}
+              style={{
+                transform: [
+                  cameraFacing === "user" ? "scaleX(-1)" : "",
+                  !nativeZoom ? `scale(${cameraZoom})` : "",
+                ].filter(Boolean).join(" ") || "none",
+              }}
               aria-label="Live crop camera preview"
             />
           )}
@@ -183,7 +199,9 @@ export default function CropPhotoScreen({
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center text-white">
               <span className="text-5xl" aria-hidden="true">📷</span>
               <p className="font-display text-lg font-semibold">Camera is paused</p>
-              <p className="text-sm text-white/65">Allow camera access to frame your crop.</p>
+              <p className="text-sm text-white/65">
+                {cameraError || (cameraRequesting ? "Opening camera…" : "Allow camera access to frame your crop.")}
+              </p>
             </div>
           )}
           {stream && !photoData && (
@@ -202,63 +220,96 @@ export default function CropPhotoScreen({
           )}
         </div>
 
-        {stream && !photoData && (
+        {!photoData && (
           <div className="card space-y-3 p-4">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-semibold text-charcoal">Zoom</p>
-                <p className="text-[11px] text-muted">
-                  {nativeZoom ? "Camera lens control" : "Digital crop from live camera"}
-                </p>
+              <p className="text-[13px] font-semibold text-charcoal">Camera</p>
+              <div
+                role="group"
+                aria-label="Choose camera"
+                className="flex rounded-full bg-brand-pale p-1"
+              >
+                {([
+                  ["user", "Front"],
+                  ["environment", "Rear"],
+                ] as const).map(([facing, label]) => (
+                  <button
+                    key={facing}
+                    type="button"
+                    aria-pressed={cameraFacing === facing}
+                    disabled={cameraRequesting}
+                    onClick={() => onRequestCamera(facing)}
+                    className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors disabled:opacity-50 ${cameraFacing === facing ? "bg-brand text-white" : "text-brand"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <span className="font-display text-[16px] font-bold text-brand">
-                {cameraZoom.toFixed(1)}×
-              </span>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => void updateZoom(cameraZoom - (nativeZoom?.step ?? 0.1))}
-                disabled={cameraZoom <= (nativeZoom?.min ?? 1)}
-                aria-label="Zoom out"
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg font-semibold text-charcoal disabled:opacity-40"
-              >
-                −
-              </button>
-              <input
-                type="range"
-                min={nativeZoom?.min ?? 1}
-                max={nativeZoom?.max ?? 3}
-                step={nativeZoom?.step ?? 0.1}
-                value={cameraZoom}
-                onChange={(event) => void updateZoom(Number(event.currentTarget.value))}
-                aria-label="Camera zoom"
-                className="min-w-0 flex-1 accent-[#2C5F2E]"
-              />
-              <button
-                type="button"
-                onClick={() => void updateZoom(cameraZoom + (nativeZoom?.step ?? 0.1))}
-                disabled={cameraZoom >= (nativeZoom?.max ?? 3)}
-                aria-label="Zoom in"
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg font-semibold text-charcoal disabled:opacity-40"
-              >
-                +
-              </button>
-              {torchAvailable && (
-                <button
-                  type="button"
-                  onClick={() => void toggleTorch()}
-                  aria-label={torchOn ? "Turn flash off" : "Turn flash on"}
-                  aria-pressed={torchOn}
-                  className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border ${torchOn ? "bg-amber-pale" : "bg-card"}`}
-                >
-                  <span aria-hidden="true">⚡</span>
-                </button>
-              )}
-            </div>
+            {stream && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-semibold text-charcoal">Zoom</p>
+                    <p className="text-[11px] text-muted">
+                      {nativeZoom ? "Camera lens control" : "Digital crop from live camera"}
+                    </p>
+                  </div>
+                  <span className="font-display text-[16px] font-bold text-brand">
+                    {cameraZoom.toFixed(1)}×
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void updateZoom(cameraZoom - (nativeZoom?.step ?? 0.1))}
+                    disabled={cameraZoom <= (nativeZoom?.min ?? 1)}
+                    aria-label="Zoom out"
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg font-semibold text-charcoal disabled:opacity-40"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="range"
+                    min={nativeZoom?.min ?? 1}
+                    max={nativeZoom?.max ?? 3}
+                    step={nativeZoom?.step ?? 0.1}
+                    value={cameraZoom}
+                    onChange={(event) => void updateZoom(Number(event.currentTarget.value))}
+                    aria-label="Camera zoom"
+                    className="min-w-0 flex-1 accent-[#2C5F2E]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void updateZoom(cameraZoom + (nativeZoom?.step ?? 0.1))}
+                    disabled={cameraZoom >= (nativeZoom?.max ?? 3)}
+                    aria-label="Zoom in"
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg font-semibold text-charcoal disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                  {torchAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => void toggleTorch()}
+                      aria-label={torchOn ? "Turn flash off" : "Turn flash on"}
+                      aria-pressed={torchOn}
+                      className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-border ${torchOn ? "bg-amber-pale" : "bg-card"}`}
+                    >
+                      <span aria-hidden="true">⚡</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {cameraError && stream && (
+          <p role="alert" className="text-sm font-medium text-danger">
+            {cameraError}
+          </p>
+        )}
         {captureError && (
           <p role="alert" className="text-sm font-medium text-danger">
             The camera is not ready yet. Please wait for the preview and try again.
@@ -301,10 +352,14 @@ export default function CropPhotoScreen({
 
             <Button
               variant="primary"
-              onClick={stream ? capturePhoto : onRequestCamera}
-              disabled={stream ? !cameraReady : false}
+              onClick={stream ? capturePhoto : () => onRequestCamera(cameraFacing)}
+              disabled={cameraRequesting || (stream ? !cameraReady : false)}
             >
-              {stream ? "Capture Photo" : "Enable Camera"}
+              {cameraRequesting
+                ? "Opening camera…"
+                : stream
+                  ? "Capture Photo"
+                  : "Open Camera"}
             </Button>
           </>
         )}

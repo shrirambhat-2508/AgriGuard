@@ -20,7 +20,7 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
   const c = active ? "#FFFFFF" : "rgba(255,255,255,0.62)"
   if (id === "home")
     return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
         <path
           d="M3 9.5L11 3L19 9.5V19C19 19.55 18.55 20 18 20H14V15H8V20H4C3.45 20 3 19.55 3 19V9.5Z"
           stroke={c}
@@ -33,7 +33,7 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
     )
   if (id === "insights")
     return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
         <polyline
           points="3,16 8,10 12,13 19,6"
           stroke={c}
@@ -54,7 +54,7 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
     )
   if (id === "history")
     return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="8" stroke={c} strokeWidth="1.6" />
         <path
           d="M11 7V11L13.5 13.5"
@@ -67,7 +67,7 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
     )
   if (id === "settings")
     return (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
         <circle cx="11" cy="11" r="2.5" stroke={c} strokeWidth="1.6" />
         <path
           d="M11 3V5M11 17V19M3 11H5M17 11H19M5.05 5.05L6.46 6.46M15.54 15.54L16.95 16.95M5.05 16.95L6.46 15.54M15.54 6.46L16.95 5.05"
@@ -90,7 +90,7 @@ export default function BottomNav({
       className="mobile-nav-shell absolute bottom-0 left-0 right-0 pointer-events-none"
       style={{
         padding: 0,
-        marginBottom: "calc(12px + env(safe-area-inset-bottom))",
+        marginBottom: "calc(8px + env(safe-area-inset-bottom))",
         background: "transparent",
         border: 0,
         boxShadow: "none",
@@ -99,7 +99,7 @@ export default function BottomNav({
       }}
     >
       <div
-        className="mobile-nav-glass mx-auto flex w-[calc(100%-32px)] max-w-[640px] items-stretch gap-1 rounded-full p-1.5 pointer-events-auto"
+        className="mobile-nav-glass mx-auto flex w-[calc(100%-32px)] max-w-[640px] items-stretch gap-0 rounded-full p-1 pointer-events-auto"
       >
         {TABS.map(({ id, label }) => {
           const isActive = active === id
@@ -108,17 +108,17 @@ export default function BottomNav({
             <button
               key={id}
               onClick={() => onNavigate(id)}
-              className={`mobile-nav-tile flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 py-2${isActive ? " mobile-nav-tile-active" : ""}`}
+              className={`mobile-nav-tile flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-1.5${isActive ? " mobile-nav-tile-active" : ""}`}
             >
               {isCheck ? (
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
                   style={{
                     background: darkMode ? "#527C55" : "#6F9B72",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <circle
                       cx="12"
                       cy="12"
@@ -139,7 +139,7 @@ export default function BottomNav({
                 <Icon id={id} active={isActive} />
               )}
               <span
-                className="text-[10px] font-semibold tracking-wide"
+                className="text-[9px] font-semibold tracking-wide"
                 style={{
                   color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.68)",
                 }}

@@ -83,7 +83,7 @@ export default function SensorScreen({
     return (
       <div className="flex-1 min-h-0 flex flex-col">
         <TopBar title="Field Conditions" onBack={() => navigate("home")} />
-        <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden flex flex-col gap-5 px-5 pb-8">
+        <div className="camera-flow-scroll scroll-hidden flex flex-col gap-5 px-5">
           <div className="rounded-3xl bg-[#1E4A20] p-6 text-white shadow-lg">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl">
@@ -123,7 +123,9 @@ export default function SensorScreen({
 
           <Button
             variant="primary"
-            onClick={onContinue ?? (() => navigate("crop-photo"))}
+            onClick={() =>
+              onContinue ? onContinue() : navigate("crop-photo")
+            }
             disabled={cameraRequesting}
           >
             {cameraRequesting ? "Waiting for camera permission…" : "Continue to camera"}
@@ -140,7 +142,7 @@ export default function SensorScreen({
         title="Checking field conditions"
         onBack={() => navigate("home")}
       />
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden flex flex-col gap-5 px-5 pb-8">
+      <div className="camera-flow-scroll scroll-hidden flex flex-col gap-5 px-5">
         <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-[#1E4A20] px-6 py-7 text-center text-white shadow-lg">
           <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
             <div className="absolute inset-0 rounded-full border-2 border-white/25 border-t-white animate-spin-ring" />

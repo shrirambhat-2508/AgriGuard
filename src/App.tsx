@@ -26,6 +26,7 @@ import { DEFAULT_CROPS, type Crop } from "./data/crops"
 type Screen = "splash" | "home" | "home-empty" | "sensor-connecting" | "sensor-connected" | "sensor-disconnected" | "crop-photo" | "ai-analysis" | "crop-result" | "saved-report" | "history" | "history-detail" | "insights" | "insights-insufficient" | "insights-empty" | "overall-analysis" | "settings" | "about" | "manage-crops" | "metric-detail" | "error-sensor-disconnected" | "error-camera-denied" | "error-blurry-photo" | "error-analysis-failed" | "error-save-failed" | "error-no-sensor-reading"
 
 type NavTab = "home" | "check" | "insights" | "history" | "settings"
+type CameraFacing = "user" | "environment"
 
 type AppHistoryEntry = {
   app: "agriguard"
@@ -103,7 +104,9 @@ function useIsMobile() {
 export default function App() {
   const [screen, setScreen] = useState<Screen>("splash")
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [cameraFacing, setCameraFacing] = useState<CameraFacing>("environment")
   const [cameraRequesting, setCameraRequesting] = useState(false)
+  const [cameraError, setCameraError] = useState("")
   const [selectedHistoryId, setSelectedHistoryId] =
     useState<string | undefined>()
   const [prevKey, setPrevKey] = useState(0)
@@ -230,7 +233,9 @@ export default function App() {
     [cropReturnTo, screen, selectedHistoryId, selectedMetric],
   )
 
-  const requestCropCamera = useCallback(async () => {
+  const requestCropCamera = useCallback(async (
+    facing: CameraFacing = "environment",
+  ) => {
     const currentEntry = window.history.state as AppHistoryEntry | null
     if (screen === "sensor-connecting" && currentEntry?.app === "agriguard") {
       window.history.replaceState(
@@ -241,22 +246,36 @@ export default function App() {
     }
 
     setCameraRequesting(true)
+    setCameraError("")
+    setCameraFacing(facing)
+
+    const previousStream = screen === "crop-photo" ? cameraStream : null
+    if (previousStream) {
+      previousStream.getTracks().forEach((track) => track.stop())
+      setCameraStream(null)
+    }
+
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Camera access is unavailable in this browser")
       }
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
+        video: { facingMode: { exact: facing } },
         audio: false,
       })
       setCameraStream(stream)
-      navigate("crop-photo")
+      setCameraFacing(facing)
+      if (screen !== "crop-photo") navigate("crop-photo")
     } catch {
-      navigate("error-camera-denied")
+      if (screen === "crop-photo") {
+        setCameraError("That camera could not be opened. Try the other camera or check device permissions.")
+      } else {
+        navigate("error-camera-denied")
+      }
     } finally {
       setCameraRequesting(false)
     }
-  }, [navigate, screen])
+  }, [cameraStream, navigate, screen])
 
   const saveCropPhoto = useCallback(
     (photoData: string) => {
@@ -375,6 +394,9 @@ export default function App() {
           <CropPhotoScreen
             navigate={navigate}
             stream={cameraStream}
+            cameraFacing={cameraFacing}
+            cameraRequesting={cameraRequesting}
+            cameraError={cameraError}
             onRequestCamera={requestCropCamera}
             onSavePhoto={saveCropPhoto}
           />

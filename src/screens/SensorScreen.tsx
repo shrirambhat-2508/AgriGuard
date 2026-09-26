@@ -9,7 +9,6 @@ interface SensorScreenProps {
   navigate: (screen: string) => void
   subState?: "connecting" | "connected" | "disconnected"
   onContinue?: () => void
-  cameraRequesting?: boolean
 }
 
 type StepState = "done" | "active" | "pending"
@@ -25,7 +24,6 @@ export default function SensorScreen({
   navigate,
   subState = "connecting",
   onContinue,
-  cameraRequesting = false,
 }: SensorScreenProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [phase, setPhase] =
@@ -126,9 +124,8 @@ export default function SensorScreen({
             onClick={() =>
               onContinue ? onContinue() : navigate("crop-photo")
             }
-            disabled={cameraRequesting}
           >
-            {cameraRequesting ? "Waiting for camera permission…" : "Continue to camera"}
+            Continue to photo
           </Button>
         </div>
       </div>

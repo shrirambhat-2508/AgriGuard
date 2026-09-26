@@ -105,6 +105,7 @@ export default function HomeScreen({
           className="absolute top-12 right-5 w-9 h-9 rounded-xl items-center justify-center transition-all active:scale-90 flex md:hidden"
           style={{ background: "rgba(255,255,255,0.12)" }}
           aria-label="Toggle dark mode"
+          aria-pressed={darkMode}
         >
           <span className="text-lg">{darkMode ? "☀️" : "🌙"}</span>
         </button>

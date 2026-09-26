@@ -216,6 +216,7 @@ export default function Sidebar({
           className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90"
           style={{ background: "rgba(255,255,255,0.1)" }}
           aria-label="Toggle dark mode"
+          aria-pressed={darkMode}
         >
           <span className="text-base">{darkMode ? "☀️" : "🌙"}</span>
         </button>

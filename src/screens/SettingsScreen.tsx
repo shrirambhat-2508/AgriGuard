@@ -38,6 +38,7 @@ function SettingsRow({
     <button
       onClick={toggle ? onToggle : onPress}
       disabled={staticRow}
+      aria-pressed={toggle ? Boolean(toggled) : undefined}
       className="w-full flex items-center justify-between py-3.5 px-4 text-left transition-all active:scale-[0.98]"
       style={{
         cursor: staticRow ? "default" : "pointer",
@@ -219,6 +220,7 @@ export default function SettingsScreen({
           <SettingsRow
             label="Dark Mode"
             emoji="🌙"
+            value={darkMode ? "On" : "Off"}
             toggle
             toggled={darkMode}
             onToggle={onToggleDark}

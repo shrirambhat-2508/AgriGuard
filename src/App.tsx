@@ -26,8 +26,6 @@ import { DEFAULT_CROPS, type Crop } from "./data/crops"
 type Screen = "splash" | "home" | "home-empty" | "sensor-connecting" | "sensor-connected" | "sensor-disconnected" | "crop-photo" | "ai-analysis" | "crop-result" | "saved-report" | "history" | "history-detail" | "insights" | "insights-insufficient" | "insights-empty" | "overall-analysis" | "settings" | "about" | "manage-crops" | "metric-detail" | "error-sensor-disconnected" | "error-camera-denied" | "error-blurry-photo" | "error-analysis-failed" | "error-save-failed" | "error-no-sensor-reading"
 
 type NavTab = "home" | "check" | "insights" | "history" | "settings"
-type CameraFacing = "user" | "environment"
-
 type AppHistoryEntry = {
   app: "agriguard"
   screen: Screen
@@ -75,6 +73,15 @@ function getActiveNav(screen: Screen): NavTab {
 
 const DEFAULT_CROP_ID = "tomato"
 const CROP_HISTORY_STORAGE_KEY = "agriguard.crop-history"
+const DARK_MODE_STORAGE_KEY = "agriguard.dark-mode"
+
+function loadDarkMode(): boolean {
+  try {
+    return localStorage.getItem(DARK_MODE_STORAGE_KEY) === "dark"
+  } catch {
+    return false
+  }
+}
 
 function loadCropHistory(): CropRecord[] {
   try {
@@ -103,16 +110,12 @@ function useIsMobile() {
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("splash")
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
-  const [cameraFacing, setCameraFacing] = useState<CameraFacing>("environment")
-  const [cameraRequesting, setCameraRequesting] = useState(false)
-  const [cameraError, setCameraError] = useState("")
   const [selectedHistoryId, setSelectedHistoryId] =
     useState<string | undefined>()
   const [prevKey, setPrevKey] = useState(0)
   const [records, setRecords] = useState<CropRecord[]>(loadCropHistory)
   const [pendingReport, setPendingReport] = useState<CropRecord | null>(null)
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(loadDarkMode)
   const [activeCropId, setActiveCropId] = useState<string>(DEFAULT_CROP_ID)
   const [userCrops, setUserCrops] = useState<Crop[]>([])
   const [myCropIds, setMyCropIds] = useState<string[]>(["tomato"])
@@ -157,6 +160,19 @@ export default function App() {
       return
     }
   }, [records])
+
+  useEffect(() => {
+    const theme = darkMode ? "dark" : "light"
+    document.documentElement.classList.toggle("dark", darkMode)
+    document.documentElement.style.colorScheme = theme
+    document.body.style.backgroundColor = darkMode ? "#0E1512" : "#F7F4EF"
+
+    try {
+      localStorage.setItem(DARK_MODE_STORAGE_KEY, theme)
+    } catch {
+      return
+    }
+  }, [darkMode])
 
   useEffect(() => {
     const initialEntry: AppHistoryEntry = {
@@ -233,50 +249,6 @@ export default function App() {
     [cropReturnTo, screen, selectedHistoryId, selectedMetric],
   )
 
-  const requestCropCamera = useCallback(async (
-    facing: CameraFacing = "environment",
-  ) => {
-    const currentEntry = window.history.state as AppHistoryEntry | null
-    if (screen === "sensor-connecting" && currentEntry?.app === "agriguard") {
-      window.history.replaceState(
-        { ...currentEntry, screen: "sensor-connected" },
-        "",
-        window.location.href,
-      )
-    }
-
-    setCameraRequesting(true)
-    setCameraError("")
-    setCameraFacing(facing)
-
-    const previousStream = screen === "crop-photo" ? cameraStream : null
-    if (previousStream) {
-      previousStream.getTracks().forEach((track) => track.stop())
-      setCameraStream(null)
-    }
-
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Camera access is unavailable in this browser")
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: facing } },
-        audio: false,
-      })
-      setCameraStream(stream)
-      setCameraFacing(facing)
-      if (screen !== "crop-photo") navigate("crop-photo")
-    } catch {
-      if (screen === "crop-photo") {
-        setCameraError("That camera could not be opened. Try the other camera or check device permissions.")
-      } else {
-        navigate("error-camera-denied")
-      }
-    } finally {
-      setCameraRequesting(false)
-    }
-  }, [cameraStream, navigate, screen])
-
   const saveCropPhoto = useCallback(
     (photoData: string) => {
       const now = new Date()
@@ -326,12 +298,6 @@ export default function App() {
     navigate("saved-report")
   }, [navigate, pendingReport, records])
 
-  useEffect(() => {
-    if (screen === "crop-photo" || !cameraStream) return
-    cameraStream.getTracks().forEach((track) => track.stop())
-    setCameraStream(null)
-  }, [cameraStream, screen])
-
   const handleNavTab = useCallback(
     (tab: NavTab) => {
       let target: Screen
@@ -374,8 +340,7 @@ export default function App() {
           <SensorScreen
             navigate={navigate}
             subState="connecting"
-            onContinue={requestCropCamera}
-            cameraRequesting={cameraRequesting}
+            onContinue={() => navigate("crop-photo")}
           />
         )
       case "sensor-connected":
@@ -383,8 +348,7 @@ export default function App() {
           <SensorScreen
             navigate={navigate}
             subState="connected"
-            onContinue={requestCropCamera}
-            cameraRequesting={cameraRequesting}
+            onContinue={() => navigate("crop-photo")}
           />
         )
       case "sensor-disconnected":
@@ -393,11 +357,6 @@ export default function App() {
         return (
           <CropPhotoScreen
             navigate={navigate}
-            stream={cameraStream}
-            cameraFacing={cameraFacing}
-            cameraRequesting={cameraRequesting}
-            cameraError={cameraError}
-            onRequestCamera={requestCropCamera}
             onSavePhoto={saveCropPhoto}
           />
         )

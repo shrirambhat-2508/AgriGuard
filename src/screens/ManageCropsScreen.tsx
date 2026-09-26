@@ -48,7 +48,7 @@ export default function ManageCropsScreen({
 
   function handleSelect(crop: Crop) {
     onSelectCrop(crop.id)
-    navigate(returnTo)
+    navigate("home")
   }
 
   function handleAddCustom() {
@@ -66,7 +66,7 @@ export default function ManageCropsScreen({
     setCustomName("")
     setCustomEmoji("🌱")
     setShowAddModal(false)
-    navigate(returnTo)
+    navigate("home")
   }
 
   return (

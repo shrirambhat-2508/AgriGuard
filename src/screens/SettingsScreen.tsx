@@ -235,14 +235,9 @@ export default function SettingsScreen({
         {/* ── Crop ── */}
         <Section title="My Crop">
           <SettingsRow
-            label="Active Crop"
-            emoji={activeCrop?.emoji ?? "🌱"}
-            value={activeCrop?.name ?? "Tomato"}
-            onPress={() => navigate("manage-crops")}
-          />
-          <SettingsRow
             label="Manage Crops"
             emoji="🌿"
+            value={activeCrop?.name ?? "Tomato"}
             onPress={() => navigate("manage-crops")}
           />
         </Section>

@@ -7,17 +7,17 @@ interface SidebarProps {
   onNavigate: (tab: NavTab) => void
   darkMode: boolean
   onToggleDark: () => void
-  activeCrop?: { name: string emoji: string }
+  activeCrop?: { name: string; emoji: string }
 }
 
-const ITEMS: { id: NavTab label: string }[] = [
+const ITEMS: { id: NavTab; label: string }[] = [
   { id: "home", label: "Home" },
   { id: "insights", label: "Insights" },
   { id: "history", label: "History" },
   { id: "settings", label: "Settings" },
 ]
 
-function NavIcon({ id, active }: { id: NavTab active: boolean }) {
+function NavIcon({ id, active }: { id: NavTab; active: boolean }) {
   const c = active ? "#ffffff" : "rgba(255,255,255,0.45)"
   if (id === "home")
     return (

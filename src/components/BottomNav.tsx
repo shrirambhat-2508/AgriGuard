@@ -8,7 +8,7 @@ interface BottomNavProps {
   darkMode?: boolean
 }
 
-const TABS: { id: NavTab label: string }[] = [
+const TABS: { id: NavTab; label: string }[] = [
   { id: "home", label: "Home" },
   { id: "insights", label: "Insights" },
   { id: "check", label: "Check" },
@@ -16,7 +16,7 @@ const TABS: { id: NavTab label: string }[] = [
   { id: "settings", label: "Settings" },
 ]
 
-function Icon({ id, active }: { id: NavTab active: boolean }) {
+function Icon({ id, active }: { id: NavTab; active: boolean }) {
   const c = active ? "#2C5F2E" : "var(--color-muted)"
   if (id === "home")
     return (

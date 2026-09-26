@@ -22,7 +22,7 @@ function Section({
   )
 }
 
-function InfoRow({ label, value }: { label: string value: string }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-start gap-4">
       <span className="text-[14px] text-muted font-medium flex-shrink-0">

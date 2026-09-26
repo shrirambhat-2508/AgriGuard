@@ -14,7 +14,7 @@ interface HistoryScreenProps {
 
 type Filter = "all" | ResultType
 
-const FILTERS: { id: Filter label: string }[] = [
+const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "healthy", label: "Healthy" },
   { id: "attention", label: "Attention" },
@@ -27,7 +27,7 @@ const STATUS_STRIPE: Record<string, string> = {
   warning: "bg-danger",
 }
 
-const STATUS_LABEL: Record<string, { text: string class: string }> = {
+const STATUS_LABEL: Record<string, { text: string; class: string }> = {
   healthy: { text: "Healthy", class: "bg-healthy-pale text-[#15803D]" },
   attention: { text: "Attention", class: "bg-amber-pale text-[#B45309]" },
   warning: { text: "Warning", class: "bg-danger-pale text-[#B91C1C]" },

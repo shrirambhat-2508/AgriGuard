@@ -86,6 +86,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false)
   const [activeCropId, setActiveCropId] = useState<string>(DEFAULT_CROP_ID)
   const [userCrops, setUserCrops] = useState<Crop[]>([])
+  const [myCropIds, setMyCropIds] = useState<string[]>(["tomato"])
   const [cropReturnTo, setCropReturnTo] = useState<string>("home")
   const [selectedMetric, setSelectedMetric] =
     useState<"moisture" | "temp" | "humidity">("moisture")
@@ -102,6 +103,23 @@ export default function App() {
   const handleAddCustomCrop = useCallback((crop: Crop) => {
     setUserCrops((prev) => [...prev, crop])
   }, [])
+
+  const handleAddCropToList = useCallback((id: string) => {
+    setMyCropIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+  }, [])
+
+  const handleRemoveCropFromList = useCallback(
+    (id: string) => {
+      setMyCropIds((prev) => {
+        const next = prev.filter((cid) => cid !== id)
+        if (id === activeCropId && next.length > 0) {
+          setActiveCropId(next[0])
+        }
+        return next.length > 0 ? next : prev // prevent removing last crop
+      })
+    },
+    [activeCropId],
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -220,8 +238,11 @@ export default function App() {
           <ManageCropsScreen
             navigate={navigate}
             activeCropId={activeCropId}
+            myCropIds={myCropIds}
             userCrops={userCrops}
             onSelectCrop={setActiveCropId}
+            onAddCropToList={handleAddCropToList}
+            onRemoveCropFromList={handleRemoveCropFromList}
             onAddCustomCrop={handleAddCustomCrop}
             returnTo={cropReturnTo}
           />

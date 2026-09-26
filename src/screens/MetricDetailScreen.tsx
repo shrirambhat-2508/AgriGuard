@@ -45,7 +45,7 @@ const META: Record<MetricKey, {
   },
 }
 
-const RANGES: { id: Range label: string }[] = [
+const RANGES: { id: Range; label: string }[] = [
   { id: "week", label: "Week" },
   { id: "month", label: "Month" },
   { id: "year", label: "Year" },

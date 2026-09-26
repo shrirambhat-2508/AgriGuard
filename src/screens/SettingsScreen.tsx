@@ -318,6 +318,12 @@ export default function SettingsScreen({
             label="Disclaimer"
             onPress={() => setModal("disclaimer")}
           />
+          <p
+            className="px-4 py-3 text-[13px] leading-relaxed"
+            style={{ color: "var(--color-muted)" }}
+          >
+            AgriGuard brings crop photos, field readings, and observations together to help you monitor crop health. Saved reports stay on this device.
+          </p>
         </Section>
 
         <p

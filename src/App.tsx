@@ -27,6 +27,14 @@ type Screen = "splash" | "home" | "home-empty" | "sensor-connecting" | "sensor-c
 
 type NavTab = "home" | "check" | "insights" | "history" | "settings"
 
+type AppHistoryEntry = {
+  app: "agriguard"
+  screen: Screen
+  selectedHistoryId?: string
+  selectedMetric?: "moisture" | "temp" | "humidity"
+  cropReturnTo?: string
+}
+
 const NAV_SCREENS: Record<NavTab, Screen> = {
   home: "home",
   check: "sensor-connecting",
@@ -65,6 +73,21 @@ function getActiveNav(screen: Screen): NavTab {
 }
 
 const DEFAULT_CROP_ID = "tomato"
+const CROP_HISTORY_STORAGE_KEY = "agriguard.crop-history"
+
+function loadCropHistory(): CropRecord[] {
+  try {
+    const storedHistory = localStorage.getItem(CROP_HISTORY_STORAGE_KEY)
+    if (storedHistory === null) return MOCK_HISTORY
+
+    const parsedHistory: unknown = JSON.parse(storedHistory)
+    return Array.isArray(parsedHistory)
+      ? (parsedHistory as CropRecord[])
+      : MOCK_HISTORY
+  } catch {
+    return MOCK_HISTORY
+  }
+}
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768)
@@ -79,10 +102,13 @@ function useIsMobile() {
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("splash")
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [cameraRequesting, setCameraRequesting] = useState(false)
   const [selectedHistoryId, setSelectedHistoryId] =
     useState<string | undefined>()
   const [prevKey, setPrevKey] = useState(0)
-  const [records, setRecords] = useState<CropRecord[]>(MOCK_HISTORY)
+  const [records, setRecords] = useState<CropRecord[]>(loadCropHistory)
+  const [pendingReport, setPendingReport] = useState<CropRecord | null>(null)
   const [darkMode, setDarkMode] = useState(false)
   const [activeCropId, setActiveCropId] = useState<string>(DEFAULT_CROP_ID)
   const [userCrops, setUserCrops] = useState<Crop[]>([])
@@ -122,42 +148,186 @@ export default function App() {
   )
 
   useEffect(() => {
+    try {
+      localStorage.setItem(CROP_HISTORY_STORAGE_KEY, JSON.stringify(records))
+    } catch {
+      return
+    }
+  }, [records])
+
+  useEffect(() => {
+    const initialEntry: AppHistoryEntry = {
+      app: "agriguard",
+      screen: "splash",
+      selectedMetric: "moisture",
+      cropReturnTo: "home",
+    }
+    window.history.replaceState(initialEntry, "", window.location.href)
+
+    const handlePopState = (event: PopStateEvent) => {
+      const entry = event.state as AppHistoryEntry | null
+      if (entry?.app !== "agriguard" || !entry.screen) return
+
+      setScreen(entry.screen)
+      setSelectedHistoryId(entry.selectedHistoryId)
+      setSelectedMetric(entry.selectedMetric ?? "moisture")
+      setCropReturnTo(entry.cropReturnTo ?? "home")
+      setPrevKey((key) => key + 1)
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  useEffect(() => {
     const timer = setTimeout(() => {
-      setScreen(records.length > 0 ? "home" : "home-empty")
+      const initialScreen = records.length > 0 ? "home" : "home-empty"
+      setScreen(initialScreen)
+      window.history.replaceState(
+        { app: "agriguard", screen: initialScreen } satisfies AppHistoryEntry,
+        "",
+        window.location.href,
+      )
     }, 3200)
     return () => clearTimeout(timer)
   }, [])
 
   const navigate = useCallback(
     (target: string, id?: string) => {
-      if (target === "history-detail" && id) setSelectedHistoryId(id)
-      if (target === "metric-detail" && id) {
-        setSelectedMetric(id as "moisture" | "temp" | "humidity")
-      }
+      const nextScreen = target as Screen
+      if (
+        nextScreen === screen &&
+        (nextScreen !== "history-detail" || id === selectedHistoryId) &&
+        (nextScreen !== "metric-detail" || id === selectedMetric)
+      ) return
+
+      const nextSelectedHistoryId =
+        target === "history-detail" ? id : undefined
+      const nextSelectedMetric =
+        target === "metric-detail" && id
+          ? (id as "moisture" | "temp" | "humidity")
+          : selectedMetric
+      setSelectedHistoryId(nextSelectedHistoryId)
+      setSelectedMetric(nextSelectedMetric)
+
+      let nextCropReturnTo = cropReturnTo
       if (target === "manage-crops") {
-        // track which screen opened manage-crops so we can return there
-        setCropReturnTo(screen === "settings" ? "settings" : "home")
+        nextCropReturnTo = screen === "settings" ? "settings" : "home"
+        setCropReturnTo(nextCropReturnTo)
       }
+
+      const entry: AppHistoryEntry = {
+        app: "agriguard",
+        screen: nextScreen,
+        selectedHistoryId: nextSelectedHistoryId,
+        selectedMetric: nextSelectedMetric,
+        cropReturnTo: nextCropReturnTo,
+      }
+      window.history.pushState(entry, "", window.location.href)
       setPrevKey((k) => k + 1)
-      setScreen(target as Screen)
+      setScreen(nextScreen)
     },
-    [screen],
+    [cropReturnTo, screen, selectedHistoryId, selectedMetric],
   )
+
+  const requestCropCamera = useCallback(async () => {
+    const currentEntry = window.history.state as AppHistoryEntry | null
+    if (screen === "sensor-connecting" && currentEntry?.app === "agriguard") {
+      window.history.replaceState(
+        { ...currentEntry, screen: "sensor-connected" },
+        "",
+        window.location.href,
+      )
+    }
+
+    setCameraRequesting(true)
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera access is unavailable in this browser")
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      })
+      setCameraStream(stream)
+      navigate("crop-photo")
+    } catch {
+      navigate("error-camera-denied")
+    } finally {
+      setCameraRequesting(false)
+    }
+  }, [navigate, screen])
+
+  const saveCropPhoto = useCallback(
+    (photoData: string) => {
+      const now = new Date()
+      const report: CropRecord = {
+        ...MOCK_HISTORY[0],
+        id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+        date: now.toISOString().slice(0, 10),
+        displayDate: new Intl.DateTimeFormat(undefined, {
+          day: "numeric",
+          month: "short",
+        }).format(now),
+        displayTime: new Intl.DateTimeFormat(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(now),
+        month: new Intl.DateTimeFormat(undefined, {
+          month: "long",
+          year: "numeric",
+        }).format(now),
+        cropName: activeCrop.name,
+        photoData,
+      }
+      setPendingReport(report)
+      navigate("ai-analysis")
+    },
+    [activeCrop.name, navigate],
+  )
+
+  const saveCurrentReport = useCallback(() => {
+    if (!pendingReport) {
+      navigate("error-save-failed")
+      return
+    }
+
+    const nextRecords = [
+      pendingReport,
+      ...records.filter((record) => record.id !== pendingReport.id),
+    ]
+    try {
+      localStorage.setItem(CROP_HISTORY_STORAGE_KEY, JSON.stringify(nextRecords))
+    } catch {
+      navigate("error-save-failed")
+      return
+    }
+
+    setRecords(nextRecords)
+    navigate("saved-report")
+  }, [navigate, pendingReport, records])
+
+  useEffect(() => {
+    if (screen === "crop-photo" || !cameraStream) return
+    cameraStream.getTracks().forEach((track) => track.stop())
+    setCameraStream(null)
+  }, [cameraStream, screen])
 
   const handleNavTab = useCallback(
     (tab: NavTab) => {
+      let target: Screen
       if (tab === "home") {
-        setScreen(records.length > 0 ? "home" : "home-empty")
+        target = records.length > 0 ? "home" : "home-empty"
       } else if (tab === "insights") {
-        if (records.length === 0) setScreen("insights-empty")
-        else if (records.length < 3) setScreen("insights-insufficient")
-        else setScreen("insights")
+        if (records.length === 0) target = "insights-empty"
+        else if (records.length < 3) target = "insights-insufficient"
+        else target = "insights"
       } else {
-        setScreen(NAV_SCREENS[tab])
+        target = NAV_SCREENS[tab]
       }
-      setPrevKey((k) => k + 1)
+      navigate(target)
     },
-    [records.length],
+    [navigate, records.length],
   )
 
   const isMobile = useIsMobile()
@@ -181,19 +351,51 @@ export default function App() {
       case "home-empty":
         return <HomeEmptyScreen navigate={navigate} />
       case "sensor-connecting":
-        return <SensorScreen navigate={navigate} subState="connecting" />
+        return (
+          <SensorScreen
+            navigate={navigate}
+            subState="connecting"
+            onContinue={requestCropCamera}
+            cameraRequesting={cameraRequesting}
+          />
+        )
       case "sensor-connected":
-        return <SensorScreen navigate={navigate} subState="connected" />
+        return (
+          <SensorScreen
+            navigate={navigate}
+            subState="connected"
+            onContinue={requestCropCamera}
+            cameraRequesting={cameraRequesting}
+          />
+        )
       case "sensor-disconnected":
         return <SensorScreen navigate={navigate} subState="disconnected" />
       case "crop-photo":
-        return <CropPhotoScreen navigate={navigate} />
+        return (
+          <CropPhotoScreen
+            navigate={navigate}
+            stream={cameraStream}
+            onRequestCamera={requestCropCamera}
+            onSavePhoto={saveCropPhoto}
+          />
+        )
       case "ai-analysis":
         return <AIAnalysisScreen navigate={navigate} />
       case "crop-result":
-        return <CropResultScreen navigate={navigate} />
+        return (
+          <CropResultScreen
+            navigate={navigate}
+            record={pendingReport ?? records[0] ?? MOCK_HISTORY[0]}
+            onSaveReport={saveCurrentReport}
+          />
+        )
       case "saved-report":
-        return <SavedReportScreen navigate={navigate} />
+        return (
+          <SavedReportScreen
+            navigate={navigate}
+            record={pendingReport ?? records[0] ?? MOCK_HISTORY[0]}
+          />
+        )
       case "history":
         return <HistoryScreen navigate={navigate} records={records} />
       case "history-detail":

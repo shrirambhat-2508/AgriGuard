@@ -14,6 +14,8 @@ export interface CropRecord {
   humidity: number
   recommendation: string
   whatItMeans: string
+  cropName?: string
+  photoData?: string
 }
 
 export const MOCK_HISTORY: CropRecord[] = [

@@ -2,17 +2,17 @@ import Button from "../components/Button"
 import MetricCard from "../components/MetricCard"
 import StatusBadge from "../components/StatusBadge"
 import TopBar from "../components/TopBar"
-import { MOCK_HISTORY } from "../data/mockData"
+import { type CropRecord } from "../data/mockData"
 
 interface SavedReportScreenProps {
   navigate: (screen: string) => void
+  record: CropRecord
 }
 
 export default function SavedReportScreen({
   navigate,
+  record,
 }: SavedReportScreenProps) {
-  const record = MOCK_HISTORY[0]
-
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <TopBar title="Crop Report" onBack={() => navigate("home")} />
@@ -35,23 +35,13 @@ export default function SavedReportScreen({
         </div>
 
         {/* Photo */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ aspectRatio: "16/9" }}
-        >
-          <div
-            className="w-full h-full flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, #4a7c59 0%, #2d5a27 40%, #6b9e5e 70%, #3d7a3a 100%)",
-            }}
-          >
-            <div className="text-center space-y-1">
-              <div className="text-5xl">🌿</div>
-              <p className="text-white/60 text-xs font-medium">Crop photo</p>
-            </div>
-          </div>
-        </div>
+        {record.photoData && (
+          <img
+            src={record.photoData}
+            alt={`${record.cropName ?? "Crop"} photo`}
+            className="aspect-[4/3] w-full rounded-2xl object-cover"
+          />
+        )}
 
         {/* Date + crop */}
         <div className="card p-5 space-y-4">
@@ -64,7 +54,7 @@ export default function SavedReportScreen({
                 {record.displayDate} · {record.displayTime}
               </p>
             </div>
-            <StatusBadge status="attention" size="sm" />
+            <StatusBadge status={record.result} size="sm" />
           </div>
 
           <div className="pt-3 border-t border-border">
@@ -72,7 +62,9 @@ export default function SavedReportScreen({
               AI Observation
             </p>
             <p className="font-display font-bold text-[18px] text-charcoal">
-              {record.condition}
+              {record.cropName
+                ? `${record.cropName}: ${record.condition}`
+                : record.condition}
             </p>
             <p className="text-sm text-muted mt-0.5">
               {record.confidence}% model confidence

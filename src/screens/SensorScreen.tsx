@@ -8,6 +8,8 @@ import { MOCK_SENSOR } from "../data/mockData"
 interface SensorScreenProps {
   navigate: (screen: string) => void
   subState?: "connecting" | "connected" | "disconnected"
+  onContinue?: () => void
+  cameraRequesting?: boolean
 }
 
 type StepState = "done" | "active" | "pending"
@@ -22,6 +24,8 @@ const STEPS = [
 export default function SensorScreen({
   navigate,
   subState = "connecting",
+  onContinue,
+  cameraRequesting = false,
 }: SensorScreenProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [phase, setPhase] =
@@ -79,18 +83,29 @@ export default function SensorScreen({
     return (
       <div className="flex-1 min-h-0 flex flex-col">
         <TopBar title="Field Conditions" onBack={() => navigate("home")} />
-        <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-8 space-y-6">
-          {/* Steps summary */}
-          <div className="card p-5 space-y-4">
-            {STEPS.map((label, i) => (
-              <ProgressStep key={i} label={label} state="done" />
-            ))}
+        <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden flex flex-col gap-5 px-5 pb-8">
+          <div className="rounded-3xl bg-[#1E4A20] p-6 text-white shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl">
+                ✓
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/65">
+                  Field sensor ready
+                </p>
+                <h2 className="mt-1 font-display text-[22px] font-bold leading-tight">
+                  Readings received
+                </h2>
+                <p className="mt-1 text-[13px] text-white/75">
+                  Your field conditions are ready for the crop check.
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Readings */}
-          <div>
-            <h2 className="font-display font-semibold text-[15px] text-charcoal mb-3">
-              Current Readings
+          <div className="card flex-1 p-5">
+            <h2 className="mb-4 font-display text-[16px] font-bold text-charcoal">
+              Current field readings
             </h2>
             <div className="flex gap-3">
               <MetricCard type="moisture" value={MOCK_SENSOR.moisture} />
@@ -99,15 +114,19 @@ export default function SensorScreen({
             </div>
           </div>
 
-          <div className="bg-brand-pale rounded-2xl p-4 border border-[#C4D9C5]">
-            <p className="text-[13px] text-[#2C5F2E] font-medium leading-relaxed">
-              Field conditions have been recorded. Proceed to take a photo of
-              your crop.
+          <div className="flex items-start gap-3 rounded-2xl border border-[#C4D9C5] bg-brand-pale p-4">
+            <span className="text-xl" aria-hidden="true">📷</span>
+            <p className="text-[13px] font-medium leading-relaxed text-[#2C5F2E]">
+              Next, allow camera access and photograph a clear leaf or crop.
             </p>
           </div>
 
-          <Button variant="primary" onClick={() => navigate("crop-photo")}>
-            Continue
+          <Button
+            variant="primary"
+            onClick={onContinue ?? (() => navigate("crop-photo"))}
+            disabled={cameraRequesting}
+          >
+            {cameraRequesting ? "Waiting for camera permission…" : "Continue to camera"}
           </Button>
         </div>
       </div>
@@ -121,12 +140,29 @@ export default function SensorScreen({
         title="Checking field conditions"
         onBack={() => navigate("home")}
       />
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden px-5 pb-8 space-y-6">
-        <p className="text-[14px] text-muted">
-          Connecting to your field sensor…
-        </p>
+      <div className="flex-1 min-h-0 overflow-y-auto scroll-hidden flex flex-col gap-5 px-5 pb-8">
+        <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-3xl bg-[#1E4A20] px-6 py-7 text-center text-white shadow-lg">
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+            <div className="absolute inset-0 rounded-full border-2 border-white/25 border-t-white animate-spin-ring" />
+            <span className="text-3xl" aria-hidden="true">📡</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/65">
+              Live field connection
+            </p>
+            <h2 className="mt-1 font-display text-[21px] font-bold">
+              Reading your field
+            </h2>
+            <p className="mt-1 text-[13px] text-white/75">
+              Keep your sensor powered on and nearby.
+            </p>
+          </div>
+        </div>
 
-        <div className="card p-5 space-y-4">
+        <div className="card flex-1 space-y-4 p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+            Connection progress
+          </p>
           {STEPS.map((label, i) => (
             <ProgressStep key={i} label={label} state={getStepState(i)} />
           ))}
@@ -134,7 +170,7 @@ export default function SensorScreen({
 
         <button
           onClick={() => setPhase("disconnected")}
-          className="text-xs text-muted underline underline-offset-2 mx-auto block"
+          className="mx-auto block py-2 text-xs text-muted underline underline-offset-2"
         >
           Having trouble connecting?
         </button>

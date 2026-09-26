@@ -30,9 +30,9 @@ const ERROR_CONFIG: Record<ErrorType, {
     icon: "📷",
     title: "Camera access needed",
     message:
-      "AgriGuard needs access to your camera to take a crop photo. Please allow camera access in your device settings.",
-    primary: "Open Settings",
-    primaryNav: "crop-photo",
+      "Allow camera access for this site in your browser settings, then return and continue the crop check.",
+    primary: "Try Camera Again",
+    primaryNav: "sensor-connected",
     secondary: "Go Back",
   },
   "blurry-photo": {

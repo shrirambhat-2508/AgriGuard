@@ -48,22 +48,17 @@ export default function HistoryDetailScreen({
           className="rounded-2xl overflow-hidden"
           style={{ aspectRatio: "16/9" }}
         >
-          <div
-            className="w-full h-full flex items-center justify-center"
-            style={{
-              background:
-                record.result === "healthy"
-                  ? "linear-gradient(135deg, #4a7c59 0%, #2d5a27 60%, #6b9e5e 100%)"
-                  : "linear-gradient(135deg, #7c4a3a 0%, #5a2d2d 40%, #9e6b5e 100%)",
-            }}
-          >
-            <div className="text-center space-y-1">
-              <div className="text-5xl">
-                {record.result === "healthy" ? "🌿" : "🍂"}
-              </div>
-              <p className="text-white/50 text-xs font-medium">Crop photo</p>
+          {record.photoData ? (
+            <img
+              src={record.photoData}
+              alt={`${record.cropName ?? "Crop"} photo`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-brand-pale text-4xl">
+              🌿
             </div>
-          </div>
+          )}
         </div>
 
         {/* AI Observation */}

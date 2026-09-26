@@ -132,6 +132,86 @@ html, body, #root {
 .desktop-content .pb-28 { padding-bottom: 3rem; }
 .desktop-content .pb-32 { padding-bottom: 3rem; }
 
+.mobile-nav-shell {
+  background: transparent !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.mobile-nav-glass {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.025) 58%, rgba(255,255,255,0.1)),
+    rgba(30,74,32,0.78);
+  border: 1px solid rgba(255,255,255,0.26);
+  box-shadow: 0 10px 30px rgba(18,48,20,0.24), inset 0 1px 0 rgba(255,255,255,0.18);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+  isolation: isolate;
+  transition: background 0.24s ease, box-shadow 0.24s ease;
+}
+
+.app-frame.dark .mobile-nav-glass {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02) 58%, rgba(255,255,255,0.06)),
+    rgba(22,56,25,0.78);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+  isolation: isolate;
+  clip-path: none;
+}
+
+.mobile-nav-tile {
+  border-radius: 9999px;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2,0.8,0.2,1), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-nav-tile-active {
+  background: rgba(255,255,255,0.16);
+  border-radius: 9999px;
+  background-clip: padding-box;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+  animation: navTileSelect 0.24s cubic-bezier(0.2,0.8,0.2,1) both;
+}
+
+.app-frame.dark .mobile-nav-tile-active {
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-nav-tile:active {
+  transform: scale(0.94);
+}
+
+.mobile-nav-tile:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.9);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .mobile-nav-tile:hover {
+    transform: translateY(-2px);
+    background-color: rgba(255,255,255,0.1);
+  }
+}
+
+@keyframes navTileSelect {
+  from { opacity: 0.78; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-tile,
+  .mobile-nav-tile-active {
+    animation: none;
+    transition: none;
+  }
+}
+
 /* ══════════════════════════════════════════
    Card utility
 ══════════════════════════════════════════ */

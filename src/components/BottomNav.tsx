@@ -17,7 +17,7 @@ const TABS: { id: NavTab; label: string }[] = [
 ]
 
 function Icon({ id, active }: { id: NavTab; active: boolean }) {
-  const c = active ? "#2C5F2E" : "var(--color-muted)"
+  const c = active ? "#FFFFFF" : "rgba(255,255,255,0.62)"
   if (id === "home")
     return (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -27,7 +27,7 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
           strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
-          fill={active ? "rgba(44,95,46,0.14)" : "none"}
+          fill={active ? "rgba(255,255,255,0.18)" : "none"}
         />
       </svg>
     )
@@ -80,19 +80,27 @@ function Icon({ id, active }: { id: NavTab; active: boolean }) {
   return null
 }
 
-export default function BottomNav({ active, onNavigate }: BottomNavProps) {
+export default function BottomNav({
+  active,
+  onNavigate,
+  darkMode = false,
+}: BottomNavProps) {
   return (
     <nav
-      className="flex-shrink-0"
+      className="mobile-nav-shell absolute bottom-0 left-0 right-0 pointer-events-none"
       style={{
-        background: "var(--color-card)",
-        borderTop: "1px solid var(--color-border)",
-        transition: "background 0.25s ease, border-color 0.25s ease",
-        position: "relative",
+        padding: 0,
+        marginBottom: "calc(12px + env(safe-area-inset-bottom))",
+        background: "transparent",
+        border: 0,
+        boxShadow: "none",
+        outline: "none",
         zIndex: 30,
       }}
     >
-      <div className="flex items-stretch">
+      <div
+        className="mobile-nav-glass mx-auto flex w-[calc(100%-32px)] max-w-[640px] items-stretch gap-1 rounded-full p-1.5 pointer-events-auto"
+      >
         {TABS.map(({ id, label }) => {
           const isActive = active === id
           const isCheck = id === "check"
@@ -100,16 +108,14 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
             <button
               key={id}
               onClick={() => onNavigate(id)}
-              className="flex-1 flex flex-col items-center justify-center pt-2.5 pb-3 gap-1 transition-transform active:scale-90"
+              className={`mobile-nav-tile flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 py-2${isActive ? " mobile-nav-tile-active" : ""}`}
             >
               {isCheck ? (
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{
-                    background:
-                      "linear-gradient(145deg, #2C5F2E 0%, #3E8040 100%)",
-                    marginTop: -20,
-                    boxShadow: "0 4px 14px rgba(44,95,46,0.40)",
+                    background: darkMode ? "#527C55" : "#6F9B72",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
                   }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -135,11 +141,7 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
               <span
                 className="text-[10px] font-semibold tracking-wide"
                 style={{
-                  color: isCheck
-                    ? "#2C5F2E"
-                    : isActive
-                      ? "#2C5F2E"
-                      : "var(--color-muted)",
+                  color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.68)",
                 }}
               >
                 {label}

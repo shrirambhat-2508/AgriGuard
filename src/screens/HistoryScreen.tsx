@@ -114,6 +114,13 @@ export default function HistoryScreen({
                           compact
                         />
                       </div>
+                      {record.photoData && (
+                        <img
+                          src={record.photoData}
+                          alt={`${record.cropName ?? "Crop"} photo`}
+                          className="mt-3 aspect-[16/9] w-full rounded-xl object-cover"
+                        />
+                      )}
                     </div>
                     {/* Chevron */}
                     <div className="flex items-center pr-3">

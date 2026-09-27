@@ -1,0 +1,11 @@
+{
+  "title": "AgriGuard",
+  "description": "Empowering farmers with crop health monitoring, this app analyzes field conditions and provides actionable insights for better crop management.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
